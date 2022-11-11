@@ -20,7 +20,11 @@ export default defineConfig({
     sidebar: {
       '/http/': [
         {
-          items: [{ text: 'http 面试题', link: '/http/index' }]
+          items: [
+            { text: 'http 面试题', link: '/http/index' },
+            { text: 'vite 面试题', link: '/http/vite' },
+            { text: 'webpack 面试题', link: '/http/webpack' }
+          ]
         }
       ]
     }

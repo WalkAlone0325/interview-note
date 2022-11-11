@@ -1,3 +1,15 @@
+## webpack 实现原理
+
+webpack 的运行流程是一个串行的过程，从启动到结束会依次执行以下流程：
+
+1. 初始化参数：从配置文件和shell语句中读取与合并参数，得出最终的参数
+2. 开始编译：用上一步得到的参数初始化Compiler对象，加载所有配置的插件，执行对象的run方法开始执行编译
+3. 确定入口：根据配置中的entry找出所有的入口文件
+4. 编译模块：从入口文件出发，调用所有配置的loader对模块进行编译，再找出该模块依赖的模块，再递归本步骤直到所有入口依赖的文件都经过了本步骤的处理
+5. 完成模块编译：在经过loader编译完所有模块后，得到了每一个模块被翻译后的最终内容以及他们之间的依赖关系
+6. 输出资源：根据入口和模块之间的依赖关系，组装成一个个包含多个模块的 Chunk，再把每个 Chunk 转换成一个单独的文件加入到输出列表中
+7. 输出完成：在确定好输出内容后，根据配置确定输出的路径和文件名，把文件内容写入到文件系统
+
 ## webpack 作用
 
 - 模块打包：将不同模块的文件打包整合在一起
@@ -129,7 +141,7 @@ performance.getEntriesByName('first-contentful-paint')[0]
 
 ## 3. 如何使用 webpack 分析优化当前项目的 js 体积
 
-1. 安装使用 `webpack-bundle-analyze` 分析打包体积
+1. 安装使用 `webpack-bundle-analyzer` 分析打包体积
 2. 对一些库替换为更小提交的库，如 `moment` -> `dayjs`
 3. 对一些库进行按需加载，如 `import lodash` -> `import lodash/get`
 4. 对一些库使用支持 Tree Shaking，如 `import lodash` -> `import lodash-es`
