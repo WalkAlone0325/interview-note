@@ -23,7 +23,9 @@ export default defineConfig({
           items: [
             { text: 'http 面试题', link: '/http/index' },
             { text: 'vite 面试题', link: '/http/vite' },
-            { text: 'webpack 面试题', link: '/http/webpack' }
+            { text: 'webpack 面试题', link: '/http/webpack' },
+            { text: 'css 面试题', link: '/http/css' },
+            { text: 'html 面试题', link: '/http/html' }
           ]
         }
       ]
