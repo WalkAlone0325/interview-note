@@ -205,3 +205,144 @@ setup 函数中组件实例已经创建了，已经完成了 beforeCreate 和 cr
       4. 新子是数组，老子是数组，比较两个数组，找出最小不同点
 
 3. vue3优化：block树，静态提升，优化patchFlags等
+
+## Vue3 的新特性
+
+- Composition API
+- SFC 语法糖 `<script setup>`
+- Teleport 传送门
+- Fragment 片段
+- Emits 选项
+- 自定义渲染器
+- CSS 变量 （v-bind）
+- Suspense
+
+## VueRouter 的动态路由有什么用
+
+1. 给定匹配模式的路由映射到同一个组件上，这种情况就需要定义动态路由
+2. 如 `{ path: 'user/:id', component: User }`， 其中 `:id` 就是路径参数
+3. 路径参数使用 `:` 表示，当路由匹配时，params值将在每个组件中以 `this.$route.params` 的形式暴露出来
+4. 参数可以有多个，`$route` 还公开了 `$route.query` `$route.hash`等
+
+## 如何实现一个路由
+
+**用户点击跳转链接内容切换，页面不刷新**
+
+- 定义一个 `createRouter` 函数，返回路由器的实例，内部做：
+  - 保存用户传入的配置项
+  - 监听 `hash` 或 `popstate` 等事件
+  - 回调根据 path 匹配的对应路由
+
+- 将 router 定义成一个 Vue 插件，即使用 install 方法，内部做：
+  - 实现两个全局组件： `<RouterLink>` `<RouterView>`
+  - 定义两个全局变量： `$router` `$route`，在 `Composition API` 使用 `provide inject` 注入这两个变量，组件内可以访问当前路由和路由器实例
+
+## 说说 key 的作用
+
+- key 的作用主要是 **为了更高效的更新虚拟DOM**
+- vue在patch过程中，判断两个节点是否是相同节点 key 是一个必要条件，渲染一组列表时，key 往往是唯一标识，所以如果不定义 key 的话，vue只能认为比较的两个节点是同一个，这导致了频繁更新元素，使patch过程比较低效，影响性能
+- 避免使用数组索引作为 key，在新增删除或排序时可能会导致 bug；在相同标签做过渡切换时，也会使用key属性，也是为了可以区分它们，否则只会替换其内部属性而不触发过渡效果
+- 在源码中知道，vue判断两个节点是否是相同时主要判断 两者的 key 和元素类型 type。如果不设置key。可能永远认为这是两个相同节点，只能去做更新，会造成大量的dom更新操作，明显是不可取的
+
+## 说说 nextTick 的原理
+
+- nextTick 是等待下一次DOM更新的工具方法
+- Vue有个 **异步更新策略**，意思是如果 数据变化，Vue不会立即更新DOM，而是开启一个队列，把组件更新函数保存在队列中，在同一个事件循环中发生的所有数据变更会异步的批量更新。这一策略导致我们对数据的修改不会立即体会在DOM上，此时如果想要获取最新DOM状态，就需要 nextTick
+- 场景：在created中想要获取DOM；响应式数据变化后获取DOM更新，比如希望获取列表更新后的高度
+- 只需要在传入的回调函数中访问最新状态的DOM即可，或者可以使用 `await nextTick()`
+- 在Vue内部，nextTick 之所以能够让我们看到DOM更新后的结果，是因为我们传入 callback 会被添加到队列刷新函数（flushSchedulerQueue）的后面，这样等队列内部的更新函数都执行完毕，所有DOM操作也就结束了，callback 自然也就能够获取到最新的DOM状态
+
+## computed 和 watch 的区别
+
+- computed 是具有响应式的返回值
+- watch 侦测变化，执行回调
+
+## 父子组件创建、挂载顺序
+
+## 如何缓存、更新组件
+
+- activated 将 vnode 移动到需要挂载的容器container，然后进行 patch => render 
+- deactivated 将 vnode 移动到 创建的一个临时容器 `div` 中
+
+回答：
+- 使用 KeepAlive 组件，包裹动态组件 component 时，会缓存不活动的组件实例，而不是销毁它们，这样在组件切换过程中会将状态保留在内存中，防止重复渲染DOM
+- 结合属性 include 和 exclud 就可以明确指定缓存哪些组件或排除缓存指定组件。Vue3中是 `router-view` 包裹 `keep-alive`，Vue2中相反
+- 缓存后如果想要获取数据，有两种方案：
+  - beforeRouterEnter：每次进入路由时，都会执行
+  - activited：缓存的组件被激活时，会执行
+- keep-alive 是一个通用组件，内部定义了一个 map，缓存创建过组件实例，返回的渲染函数内部会查找内嵌的 component 组件对应组件 `vnode`，如果该组件在map中存在就直接返回它。由于 component 的 `is` 属性是一个响应式数据，因此只要他变化，keep-alive 的 `render` 函数就会重新执行
+
+## 如何架构一个 vue 项目
+
+1. 项目构建、引入必要插件、代码规范、提交规范、常用库和插件
+2. Vue3 使用 `vite` 或 `create-vue` 创建项目
+3. 插件：路由插件 `vue-router` 、状态管理 `vuex/pinia` 、UI库、HTTP工具 `axios`
+4. 其他比较常用的库有 `vueuse` 、`nprogress` 、 图标可以使用 `vite-svg-loader`
+5. 代码规范：结合 `prettier` 和 `eslint` 即可
+6. 提交规范：`husky` `lint-staged` `commitlint`
+
+目录结构：
+1. `.vscode` ： 用来存放项目中的 vscode 配置
+2. `plugins` ：用来存放vite插件的plugin配置
+3. `public` ：用来存放如页头icon之类的公共文件，会被打包到dist根目录下
+4. `src` ：放项目代码文件
+5. `api` ：放 http 的一些接口配置
+6. `assets` ：放一些css之类的静态资源
+7. `components` ：放项目通用组件
+8. `layout` ：放项目的布局
+9. `router` ：放项目的路由配置
+10. `store` ：放状态管理pinia配置
+11. `utils` ：放项目中的工具方法类
+12. `views` ：放项目的页面文件
+
+## 最佳实践
+
+vue文档：
+1. 风格指南
+2. 性能
+3. 安全
+4. 访问性
+5. 发布
+
+## 从 template 到 render 发生了什么
+
+1. Vue中有个独特的编译器模块，称为 `compiler`，他的作用是将用户编写的`template` 编译为 js 中可执行的 `render` 函数
+2. 手写 render 函数不仅效率低下，而且失去了编译期的优化能力
+3. 在Vue中编译器会先对 `template` 进行解析，这一步被称为 `parse`，结束之后会得到一个 js 对象，我们称为 `抽象语法树 AST`，然后对 AST 进行深加工的转换，这一步成为 `transform`，最后将前面得到的 AST 生成 js代码，也就是 `render` 函数
+
+template 先使用 parse 生成 AST，然后使用 transform 进行加工指令，节点转换等，最后通过 generate 生成 render 函数
+
+## Vue 实例挂载过程中发生了什么
+
+1. 初始化：挂载过程指 `app.mount()` 过程，整体上建立两件事：初始化和建立更新机制
+2. 初始化会创建组件实例、初始化组件状态、创建各种响应式数据
+3. 建立更新机制会立即执行一次组件更新函数，会首次执行组件渲染函数并执行patch将前面的vnode转为dom；同时首次执行渲染函数会创建它内部响应式数据和组件更新函数之间的依赖关系，这使得以后数据变化时会执行对应的更新函数
+
+## Vue 性能优化的方法
+
+1. 路由懒加载：能够有效拆分APP尺寸，访问时才异步加载
+2. `KeepAlive` 缓存页面：避免重复创建组件实例，且能保留缓存组件状态
+3. 使用 `v-show` 复用DOM：避免重新创建组件
+4. `v-for` 遍历避免同时使用 `v-if`：在Vue3中已经是错误写法
+5. `v-once` `v-memo` ：不在变化的数据使用 `v-once`；按条件跳过更新时使用 `v-memo`：下面这个列表只会更新选中状态变化项
+6. 长列表性能优化：如果是大数据长列表，可采用虚拟滚动，只渲染少部分区域的内容（`vue-virtual-scroller` `vue-virtual-scroll-grid`）
+7. 事件销毁：Vue组件销毁时，会自动解绑它的全部指令及事件监听器，但仅限于组件本身的事件
+8. 图片懒加载：未出现在可视区域的图片先不做加载，等到滚动到可视区域才去加载（`vue-lazyload`）
+9. 第三方插件按需引入（`Element-Plus`）
+10. 子组件分割策略：较重的状态组件适合拆分
+11. 服务端渲染/静态网站生成：SSR / SSG
+
+## ref 和 reactive 异同
+
+1. `ref` 接收内部值返回响应式 `Ref` 对象，`reactive` 返回响应式代理对象
+2. 前者通常用于处理单值的响应式；后者处理对象类型的响应式
+3. 都用于构造响应式对象
+4. 前者返回的数据需要 `.value` 才可以访问其值，在视图中通过 `proxyRefs` 自动脱 `.value`；ref 可以接收对象或数组等非原始值，但内部会使用 `reactive` 处理；reactive 接收 ref 对象会自动脱 ref；使用展开运算符（`...`）会使其失去响应性，可以结合 `toRefs` 将值转为 Ref 对象
+5. reactive 内部使用 Proxy 代理传入的对象并拦截该对象的操作，从而实现响应式；ref内部封装 `RefImpl` 类。并设置 `get value` `set value`，拦截用户对值的访问，从而实现响应式
+
+## watch 和 watchEffect 区别
+
+- `watchEffect` 立即运行一个函数，然后被动地追踪它的依赖，当这些依赖发生改变时重新执行该函数；不关心响应式数据前后变化的值
+- `watch` 侦测一个或多个响应式数据源并在数据源发生变化时调用回调函数
+- `watchEffect` 会立即执行；`watch` 设置 `immediate: true` 才会立即执行
+
