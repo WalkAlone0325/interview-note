@@ -10,9 +10,11 @@
 - `defineProperty` 不能监听数组的变化
 - 只能劫持对象的属性，给对象添加的属性无法劫持
 - 因为 `defineProperty` 必须先知道对象的 `key` 值
+- 初始化时需要深度递归遍历待处理的对象才能对它进行完全拦截
 
 proxy
 
+- proxy 的拦截是 懒处理，只有访问到时才会进行响应化
 - 可以直接监听数组的变化
 - 可以直接监听整个对象，而不是对象的属性
 - proxy 被重点关注的性能优化
@@ -33,7 +35,7 @@ proxy
 - 如果需要非常频繁地切换，则使用 `v-show` 较好
 - 如果在运行时条件很少改变，则使用 `v-if` 较好
 
-## 为什么部署到服务器会有 404 错误的原因
+## 为什么部署到服务器会有 404 错误的原因 （History 和 Hash）
 
 ### 为什么在 History 模式下会有问题？
 
@@ -346,3 +348,128 @@ template 先使用 parse 生成 AST，然后使用 transform 进行加工指令�
 - `watch` 侦测一个或多个响应式数据源并在数据源发生变化时调用回调函数
 - `watchEffect` 会立即执行；`watch` 设置 `immediate: true` 才会立即执行
 
+## SPA 和 SSR 的区别
+
+1. SPA 单页面应用，一般也称客户端渲染，简称CSR；SSR 是服务端渲染，一般也称多页面应用，简称 MPA
+2. SPA 只会首次请求 html 文件，后续只需要请求 JSON 数据即可，因此用户体验更好，节约流量，服务端压力也小，但是首屏加载时间会变长，对SEO不友好；SSR方案，html内容在服务器一次性生成出来，首屏加载快，SEO也方便抓取页面信息
+3. 如果存在首屏加载优化需求，SEO需求时，可以考虑SSR
+4. 但并不是只有一种代替方案，比如对一些不常变化的静态网站，可以考虑 **预渲染（prerender）**。另外 nuxtjs 也提供了 SSG（static site generate）静态网站生成方案也是很好的静态站点解决方案，结合一些CI手段，可以起到很好的优化效果，而且能够节约服务器资源
+
+## vue-loader 是什么
+
+- 用于处理单文件组件的 `webpack loader`，可以使用 SFC 的方式编写代码
+- 可以分割 `<template> <script> <style>`
+- webpack 打包时，会以 loader 的方式调用 `vue-loader`
+- `vue-loader` 会 调用 `@vue/compiler-sfc` 模块解析 SFC 源码为一个描述符（Descriptor），然后为没个语言块生成 `import` 代码
+  ```js
+  // source.vue 被 vue-loader 处理后返回的代码
+
+  // import the <template> block
+  import render from 'source.vue?vue&type=template'
+  // import the <script> block
+  import script from 'source.vue?vue&type=script'
+  import * from 'source.vue?vue&type=script'
+  // import the <style> block
+  import style from 'source.vue?vue&type=style&index=1'
+
+  script.render = render
+  export default script
+  ```
+
+## 自定义指令 自定义指令的应用场景
+
+1. Vue 有一些默认指令，如 `v-model` `v-if` `v-for` `v-once` `v-memo` 等
+2. 自定义指令主要完成一些可复用低层级 DOM 操作
+3. 使用自定义指令分为 定义、注册和使用三步：
+   1. 定义指令：对象和函数形式，前者类似组件定义，有各种生命周期；后者只会在 `mounted` `updated` 时执行
+   2. 注册：使用 `app.directive()` 全局注册；使用 `directive: {xx}` 局部注册
+   3. 使用：在注册的名称前面加上 `v-` 即可，如 `v-focus`
+4. 常用自定义指令：
+   1. 复制粘贴：`v-copy`
+   2. 长按：`v-longpress`
+   3. 防抖：`v-debounce`
+   4. 图片懒加载：`v-lazy`
+   5. 按钮权限：`v-premission`
+   6. 页面水印：`v-waterMarker`
+   7. 拖拽指令：`v-draggable`
+
+5. Vue3中变化，钩子的名称和组件保持一致；在3.2之后，在setup中以 小写v 开头即可自定义指令
+6. 编译后自定义指令会被 `withDirectives` 处理生成 vnode
+
+## $attrs 和 $listeners 做什么的
+
+- 属性透传，非属性特性的传递（没有在props中定义），可以直接使用 `v-bind="$attrs"` 传递给子组件
+- vue2中使用 `$listeners` 获取事件；vue3中已移除，合并到 `$attrs` 中
+
+## v-once 的使用场景
+
+- 仅渲染元素和组件一次，并且跳过未来更新
+- 在一些元素或者组件初始化渲染之后不在需要变化（如项目名称title，从配置文件导入）
+
+## 什么是 递归组件？使用场景
+
+- 在 `Tree` `Menu` 这类型组件中会被用到
+- 组件通过组件名称引用它自己，这种情况就是递归组件
+
+## 什么是异步组件
+
+- 大型应用中，需要分割应用为更小的快，并且在需要组件时再加载他们（比如 多 `Tabs` ）
+- 使用异步组件最简单的方式是直接给 `defineAsyncComponent()` 指定一个 loader 函数，结合 ES6 模块动态导入函数 import 可以快速实现。甚至可以指定 `loadingComponent` 和 `errorComponent` 选项从而给用户一个很好的加载反馈；另外Vue3中还可以结合 `Suspense` 组件使用异步组件
+- 异步组件容易和路由懒加载混淆，异步组件不能被用于定义懒加载路由上，处理他的是 vue 框架，处理路由组件加载的是 vue-router；但是可以在懒加载的路由组件中使用异步组件
+
+## Vue 中如何处理错误
+
+1. 错误类型：接口异常 代码逻辑异常
+2. 接口异常在 拦截器中处理；逻辑错误使用 `app.config.errorHandler` 收集错误
+3. 分析异常：区分错误类型：请求错误，上报接口信息，参数，状态码等；前端逻辑异常，获取错误名称和详情；收集应用名称、环境、版本、用户信息，所在页面等。这些信息可以通过vuex存储的全局状态和路由信息获取
+
+## Vue 长列表优化的思路
+
+1. 在大型企业项目中经常需要处理渲染大量数据，此时很容易出现卡顿。比如大数据表格、树
+2. 根据情况做不同处理：
+   1. 避免大数据量：可以采取分页的方式获取
+   2. 避免渲染大量数据：`vue-virtual-scroller` 等虚拟滚动方案，只渲染视口范围内的数据
+   3. 避免更新：可以使用 `v-once` 方式只渲染一次
+   4. 优化更新：通过 `v-memo` 缓存子树，有条件更新，提高服用，避免不必要更新
+   5. 按需加载数据：可以采用 `懒加载` 方式，在用户需要的时候才加载，比如 `tree` 组件子树的懒加载
+
+## 监听 Vuex 中数据变化
+
+- `watch` 选项或者方法
+- vuex 提供的 api `store.subcribe()`
+
+## router-link 和 router-view 是如何起作用的？
+
+1. 路由导航 和 组件内容渲染
+2. `vue-router` 会监听 `popstate` 事件，点击 `router-link` 之后页面不会刷新，而是拿出当前 path 去和 routes 中 path 匹配，获得匹配组件之后，`router-view` 会将匹配的组件渲染出来
+3. `router-link` 默认会渲染成 `a` 标签，点击后 **取消默认跳转行为** 而是执行一个 `navigate` 方法，它会 `pushstate` 以激活事件处理函数，重新匹配一个路由 `injectedRoute`；`router-view` 的渲染函数依赖这个路由，他根据该路由获取要渲染的组件并重新渲染它
+
+## Vue3 性能提升主要通过那几个方面
+
+1. 代码：全新响应式API，基于 Proxy 实现（初始化懒处理，只有访问到才做响应式处理，初始化更快；轻量的依赖关系保存：WeakMap Map Set 保存响应式数据和副作用之间的依赖关系），初始化时间和内存占用幅度改进
+2. 编译：静态提升，动态内容标记、事件缓存、block树 等，可以有效跳过大量 diff 过程
+3. 打包时更好的支持 tree-shaking，因此整体体积更小，加载更快
+
+## 什么场景使用 嵌套路由
+
+1. 页面有多层级组件组合而来的情况使用嵌套路由
+2. 表现形式是在两个路由切换时，有公用的视图内容。此时通常提取一个父组件，内部放上 `<router-view>`，从而形成物理上的嵌套，和逻辑上的嵌套对应起来。定义嵌套路由时使用 `children` 属性组织嵌套关系
+3. 原理上是在 `router-view` 组件内部判断其所处嵌套层级的深度，讲这个深度作为匹配组件数组 `matched` 的索引，获取对应组件并渲染
+
+## 页面刷新后 Vuex 的 state 数据丢失
+
+1. Vuex 只是在内存中保存状态，刷新之后就会消失，如果要持久化就要存起来
+2. 可以使用 localStorage，提交 mutation 的时候同时存入，store中把值取出作为 state 的初始值
+3. 可以使用插件封装：`vuex-persist` `vuex-persistedstate`，内部实现都是通过 订阅 `mutation` 变化做同意处理，通过插件选项控制哪些需要持久化
+
+## Vuex 有什么缺点
+
+- 相较于 redux，vuex已经相当简便了。但模块使用的比较频繁，对TS支持也不够好
+- 需要配合 mapXX 使用，还有 `namespaced` 命名空间
+- 使用 pinia
+
+## Composition API 和 Options API 有什么不同
+
+- Composition API 是一组 API，包括：`Reactivity API`、生命周期钩子、依赖注入，使用户通过导入函数的方式编写vue组件；而 Options API 则通过声明组件选项的对象形式编写组件
+- 前者简洁、高效服用逻辑，解决了 `mixins` 的各种缺点
+- 前者具有更加敏捷的代码组织能力，对TS支持更友好 
