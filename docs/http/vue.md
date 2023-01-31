@@ -473,3 +473,5 @@ template 先使用 parse 生成 AST，然后使用 transform 进行加工指令�
 - Composition API 是一组 API，包括：`Reactivity API`、生命周期钩子、依赖注入，使用户通过导入函数的方式编写vue组件；而 Options API 则通过声明组件选项的对象形式编写组件
 - 前者简洁、高效服用逻辑，解决了 `mixins` 的各种缺点
 - 前者具有更加敏捷的代码组织能力，对TS支持更友好 
+
+## 
