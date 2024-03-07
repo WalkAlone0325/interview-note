@@ -88,3 +88,5 @@ display: -webkit-box;
 - fixed 决定定位，相对于屏幕视口（viewport）
 - static 默认值，没有定位
 - inherit 从父元素继承
+
+## 测速
